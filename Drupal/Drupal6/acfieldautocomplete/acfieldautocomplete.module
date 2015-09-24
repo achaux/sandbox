@@ -1,0 +1,545 @@
+<?php
+/**
+ * @file
+ * An example module that simply builds a CCK field.  This module
+ * will work with a second example module that builds a CCK widget.
+ * Two references are used to generate this example module:
+ * 1) The email module
+ * 2) https://www.drupal.org/node/101742
+ */
+
+/**
+ * Implementation of hook_menu().
+ */
+function acfieldautocomplete_menu() {
+  $items = array();
+  $items['acfieldautocomplete/autocomplete'] = array(
+    'title' => 'AC Field autocomplete',
+    'page callback' => 'acfieldautocomplete_autocomplete',
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK
+  );
+  return $items;
+}
+
+/**
+ * Implementation of hook_theme().
+ * 
+ * This value allows the theme layer to properly utilize templates. 
+ * The array keys represent the name of the variable, and the value 
+ * will be used as the default value if not passed to the theme() function. 
+ * These arguments must be in the same order that they will be given 
+ * to the theme() function. Default values will only be passed to templates.
+ */
+function acfieldautocomplete_theme() {
+  return array(
+    'acfieldautocomplete_textfield' => array(
+      'arguments' => array('element' => NULL),
+    ),
+    'acfieldautocomplete_autocomplete' => array(
+      'arguments' => array('element' => NULL),
+    ),
+    'acfieldautocomplete_formatter_default' => array(
+      'arguments' => array('element' => NULL),
+    ),
+    'acfieldautocomplete_formatter_plain' => array(
+      'arguments' => array('element' => NULL),
+    ),
+  );
+}
+
+/**
+ * Implementation of hook_field_info().
+ */
+function acfieldautocomplete_field_info() {
+  return array(
+    'acfieldautocomplete' => array(
+      'label' => 'ACField Autocomplete',
+      /*
+      // Left this out because I cannot find it in the online documentation.  It
+      // is included in the email.module file that is being use as an example.
+      'callbacks' => array(
+        'tables' => CONTENT_CALLBACK_DEFAULT,
+        'arguments' => CONTENT_CALLBACK_DEFAULT,
+      ),
+      */
+    ),
+  );
+}
+
+/**
+ * Implementation of hook_field_settings().
+ * 
+ * Handle the parameters for a field.  This configures the field settings
+ * page when configuring the field for the content_type it is being inserted
+ * into.  For example: /admin/content/node-type/page/fields
+ *
+ * @param $op
+ *   The operation to be performed. Possible values:
+ *   - "form": Display the field settings form.
+ *   - "validate": Check the field settings form for errors.
+ *   - "save": Declare which fields to save back to the database.
+ *   - "database columns": Declare the columns that content.module should create
+ *     and manage on behalf of the field. If the field module wishes to handle
+ *     its own database storage, this should be omitted.
+ *   - "filters": If content.module is managing the database storage,
+ *     this operator determines what filters are available to views.
+ *     They always apply to the first column listed in the "database columns"
+ *     array.
+ * @param $field
+ *   The field on which the operation is to be performed.
+ * @return
+ *   This varies depending on the operation.
+ *   - The "form" operation should return an array of form elements to add to
+ *     the settings page.
+ *   - The "validate" operation has no return value. Use form_set_error().
+ *   - The "save" operation should return an array of names of form elements to
+ *     be saved in the database.
+ *   - The "database columns" operation should return an array keyed by column
+ *     name, with arrays of column information as values. This column information
+ *     must include "type", the MySQL data type of the column, and may also
+ *     include a "sortable" parameter to indicate to views.module that the
+ *     column contains ordered information. Details of other information that can
+ *     be passed to the database layer can be found at content_db_add_column().
+ *   - The "filters" operation should return an array whose values are 'filters'
+ *     definitions as expected by views.module (see Views Documentation).
+ *     When providing several filters, it is recommended to use the 'name'
+ *     attribute in order to let the user distinguish between them. If no 'name'
+ *     is specified for a filter, the key of the filter will be used instead.
+ */
+function acfieldautocomplete_field_settings($op, $field) {
+  switch ($op) {
+    case 'database columns':
+      $columns = array(
+        'fid' => array('type' => 'int', 'unsigned' => TRUE, 'not null' => FALSE, 'index' => TRUE),
+      );
+  }
+  return $columns;
+}
+
+/**
+ * Implementation of hook_field().
+ * 
+ * This configures how the field type will store and display its contents.
+ * @param $op
+ *   What kind of action is being performed. Possible values:
+ *   - "load": The node is about to be loaded from the database. This hook
+ *     should be used to load the field.
+ *   - "view": The node is about to be presented to the user. The module
+ *     should prepare and return an HTML string containing a default
+ *     representation of the field.
+ *   - "validate": The user has just finished editing the node and is
+ *     trying to preview or submit it. This hook can be used to check or
+ *     even modify the node. Errors should be set with form_set_error().
+ *   - "submit": The user has just finished editing the node and the node has
+ *     passed validation. This hook can be used to modify the node.
+ *   - "insert": The node is being created (inserted in the database).
+ *   - "update": The node is being updated.
+ *   - "delete": The node is being deleted.
+ * @param &$node
+ *   The node the action is being performed on. This argument is passed by
+ *   reference for performance only; do not modify it.
+ * @param $field
+ *   The field the action is being performed on.
+ * @param &$items
+ * An array containing the values of the field in this node. Changes to this variable will
+ * be saved back to the node object.
+ * Note that, in order to ensure consistency, this variable contains an array regardless of
+ * whether field is set to accept multiple values or not.
+ * @return
+ *   This varies depending on the operation.
+ *   - The "load" operation should return an object containing extra values
+ *     to be merged into the node object.
+ *   - The "view" operation should return a string containing an HTML
+ *     representation of the field data.
+ *   - The "insert", "update", "delete", "validate", and "submit" operations
+ *     have no return value.
+ *
+ * In most cases, only "view" and "validate" are relevant operations; the rest
+ * have default implementations in content_field() that usually suffice.
+ */
+function acfieldautocomplete_field($op, &$node, $field, &$items, $teaser, $page) {
+  switch ($op) {
+    case 'view':
+      foreach ($items as $delta => $item) {
+        $items[$delta]['view'] = content_format($field, $item, 'default', $node);
+      }
+      return theme('field', $node, $field, $items, $teaser, $page);
+      
+    case 'sanitize':
+      foreach ($items as $delta => $item) {
+        $items[$delta]['safe'] = check_plain($item['acfieldautocomplete']);
+      }
+      break;
+  }
+}
+
+/**
+ * Implementation of hook_content_is_empty().
+ */
+function acfieldautocomplete_content_is_empty($item, $field) {
+  if (empty($item['fid'])) {
+    return TRUE;
+  }
+  return FALSE;
+}
+
+/**
+ * Implementation of hook_field_formatter_info().
+ * 
+ * Declare information about a formatter.
+ *
+ * @return
+ *   An array keyed by formatter name. Each element of the array is an associative
+ *   array with these keys and values:
+ *   - "label": The human-readable label for the formatter.
+ *   - "field types": An array of field type names that can be displayed using
+ *     this formatter.
+ */
+function acfieldautocomplete_field_formatter_info() {
+  return array(
+    'default' => array(
+      'label' => t('Default'),
+      'field types' => array('acfieldautocomplete'),
+      'multiple values' => CONTENT_HANDLE_CORE,
+    ),
+    'plain' => array(
+      'label' => t('Plain text'),
+      'field types' => array('acfieldautocomplete'),
+      'multiple values' => CONTENT_HANDLE_CORE,
+    ),
+  );
+}
+
+/**
+ * Theme function for 'default' acfieldautocomplete field formatter.
+ */
+function theme_acfieldautocomplete_formatter_default($element) {
+  return !empty($element['#item']['safe']) ? $element['#item']['safe'] : '';
+}
+
+/**
+ * Theme function for 'plain' acfieldautocomplete field formatter.
+ */
+function theme_acfieldautocomplete_formatter_plain($element) {
+  return !empty($element['#item']['safe']) ? $element['#item']['safe'] : '';
+}
+
+/**
+ * Implementation of hook_widget_info().
+ */
+function acfieldautocomplete_widget_info() {
+  return array(
+    'acfieldautocomplete_textfield' => array(
+      'label' => t('AC Fruit textfield'),
+      'field types' => array('acfieldautocomplete'),
+      'multiple values' => CONTENT_HANDLE_CORE,
+      'callbacks' => array(
+        'default value' => CONTENT_CALLBACK_DEFAULT,
+      ),
+    ),
+    'acfieldautocomplete_autocomplete' => array(
+      'label' => t('AC Fruit Autocomplete field'),
+      'field types' => array('acfieldautocomplete'),
+      'multiple values' => CONTENT_HANDLE_CORE,
+      'callbacks' => array(
+        'default value' => CONTENT_CALLBACK_DEFAULT,
+      ),
+    ),
+  );
+}
+
+/**
+ * Value for a userreference autocomplete element.
+ *
+ * Substitute in the fruit name for the fid.
+ */
+function acfieldautocomplete_autocomplete_value($element, $edit = FALSE) {
+  $field_key  = $element['#columns'][0];
+  if (!empty($element['#default_value'][$field_key])) {
+    $value = db_result(db_query("SELECT name FROM {acfieldautocomplete_fruit_table} WHERE fid = '%d'", $element['#default_value'][$field_key]));
+    return array($field_key => $value);
+  }
+  return array($field_key => NULL);
+}
+
+/**
+ * Validate an autocomplete element.
+ *
+ * Remove the wrapper layer and set the right element's value.
+ * This will move the nested value at 'field-name-0-uid-uid'
+ * back to its original location, 'field-name-0-uid'.
+ */
+function acfieldautocomplete_autocomplete_validate($element, &$form_state) {
+  $field_name = $element['#field_name'];
+  $type_name = $element['#type_name'];
+  $field = content_fields($field_name, $type_name);
+  $field_key = $element['#columns'][0];
+  $value = $element['#value'][$field_key];
+  $uid = NULL;
+  if (!empty($value)) {
+    $reference = _acfieldautocomplete_potential_references($field, $value, 'equals', NULL, 1);
+    if (empty($reference)) {
+      form_error($element[$field_key], t('%name: found no valid fruit with that name.', array('%name' => t($field['widget']['label']))));
+    }
+    else {
+      $uid = key($reference);
+    }
+  }
+  form_set_value($element, $uid, $form_state);
+}
+
+/**
+ * Process an individual element.
+ *
+ * Build the form element. When creating a form using FAPI #process,
+ * note that $element['#value'] is already set.
+ *
+ */
+function acfieldautocomplete_autocomplete_process($element, $edit, $form_state, $form) {
+  // The userreference autocomplete widget doesn't need to create its own
+  // element, it can wrap around the text_textfield element and add an autocomplete
+  // path and some extra processing to it.
+  // Add a validation step where the value can be unwrapped.
+  $field_key  = $element['#columns'][0];
+
+  $element[$field_key] = array(
+    '#type' => 'text_textfield',
+    '#default_value' => isset($element['#value']) ? $element['#value'] : '',
+    '#autocomplete_path' => 'acfieldautocomplete/autocomplete/'. $element['#field_name'],
+    // The following values were set by the content module and need
+    // to be passed down to the nested element.
+    '#title' => $element['#title'],
+    '#required' => $element['#required'],
+    '#description' => $element['#description'],
+    '#field_name' => $element['#field_name'],
+    '#type_name' => $element['#type_name'],
+    '#delta' => $element['#delta'],
+    '#columns' => $element['#columns'],
+  );
+  if (empty($element[$field_key]['#element_validate'])) {
+    $element[$field_key]['#element_validate'] = array();
+  }
+  array_unshift($element[$field_key]['#element_validate'], 'acfieldautocomplete_autocomplete_validate');
+
+  // Used so that hook_field('validate') knows where to flag an error.
+  $element['_error_element'] = array(
+    '#type' => 'value',
+    // Wrapping the element around a text_textfield element creates a
+    // nested element, so the final id will look like 'field-name-0-uid-uid'.
+    '#value' => implode('][', array_merge($element['#parents'], array($field_key, $field_key))),
+  );
+  return $element;
+}
+
+/**
+ * Implementation of FAPI hook_elements().
+ */
+function acfieldautocomplete_elements() {
+  return array(
+    'acfieldautocomplete_textfield' => array(
+      '#input' => TRUE,
+      '#columns' => array('name'), // Database column name???
+      '#delta' => 0,
+      '#process' => array('acfieldautocomplete_textfield_process'),
+    ),
+    'acfieldautocomplete_autocomplete' => array(
+      '#input' => TRUE,
+      '#columns' => array('name'), '#delta' => 0,
+      '#process' => array('acfieldautocomplete_autocomplete_process'),
+      '#autocomplete_path' => FALSE,
+    ),
+  );
+}
+
+/**
+ * Implementation of hook_widget_settings().
+ */
+function acfieldautocomplete_widget_settings($op, $widget) {
+  switch ($op) {
+    case 'form':
+      $form = array();
+      $match = isset($widget['autocomplete_match']) ? $widget['autocomplete_match'] : 'contains';
+      $size = (isset($widget['size']) && is_numeric($widget['size'])) ? $widget['size'] : 60;
+      if ($widget['type'] == 'acfieldautocomplete_autocomplete') {
+        $form['autocomplete_match'] = array(
+          '#type' => 'select',
+          '#title' => t('Autocomplete matching'),
+          '#default_value' => $match,
+          '#options' => array(
+            'starts_with' => t('Starts with'),
+            'contains' => t('Contains'),
+          ),
+          '#description' => t('Select the method used to collect autocomplete suggestions. Note that <em>Contains</em> can cause performance issues on sites with thousands of nodes.'),
+        );
+        $form['size'] = array(
+          '#type' => 'textfield',
+          '#title' => t('Size of textfield'),
+          '#default_value' => $size,
+          '#element_validate' => array('_element_validate_integer_positive'),
+          '#required' => TRUE,
+        );
+      }
+      else {
+        $form['autocomplete_match'] = array('#type' => 'hidden', '#value' => $match);
+        $form['size'] = array('#type' => 'hidden', '#value' => $size);
+      }
+      return $form;
+
+    case 'save':
+      return array('autocomplete_match', 'size');
+  }
+}
+
+/**
+ * Implementation of hook_widget().
+ */
+function acfieldautocomplete_widget(&$form, &$form_state, $field, $items, $delta = 0) {
+  switch ($field['widget']['type']) {
+    case 'acfieldautocomplete_textfield':
+      $element = array(
+        '#type' => 'acfieldautocomplete_textfield',
+        '#default_value' => $items,
+      );
+      break;
+
+    case 'acfieldautocomplete_autocomplete':
+      $element = array(
+        '#type' => 'acfieldautocomplete_autocomplete',
+        '#default_value' => isset($items[$delta]) ? $items[$delta] : NULL,
+        '#value_callback' => 'acfieldautocomplete_autocomplete_value',
+      );
+      break;
+  }
+  return $element;
+}
+
+/**
+ * Fetch an array of all candidate fruit.
+ *
+ * @param $field
+ *   The field description.
+ * @param $string
+ *   Optional string to filter usernames on (used by autocomplete)
+ * @param $match
+ *   Operator to match filtered name against, can be any of:
+ *   'contains', 'equals', 'starts_with'
+ * @param $ids
+ *   Optional user ids to lookup (the $string and $match arguments will be
+ *   ignored).
+ * @param $limit
+ *   If non-zero, limit the size of the result set.
+ *
+ * @return
+ *   An array of valid users in the form:
+ *   array(
+ *     uid => array(
+ *       'title' => The fruit name,
+ *       'rendered' => The text to display in widgets (can be HTML)
+ *     ),
+ *     ...
+ *   )
+ */
+function _acfieldautocomplete_potential_references($field, $string = '', $match = 'contains', $ids = array(), $limit = NULL) {
+  static $results = array();
+
+  // Create unique id for static cache.
+  $cid = $field['field_name'] .':'. $match .':'. ($string !== '' ? $string : implode('-', $ids)) .':'. $limit;
+  if (!isset($results[$cid])) {
+    $references = _acfieldautocomplete_potential_references_standard($field, $string, $match, $ids, $limit);
+
+    // Store the results.
+    $results[$cid] = !empty($references) ? $references : array();
+  }
+
+  return $results[$cid];
+}
+
+/**
+ * Helper function for _acfieldautocomplete_potential_references():
+ */
+function _acfieldautocomplete_potential_references_standard($field, $string = '', $match = 'contains', $ids = array(), $limit = NULL) {
+  $where = array();
+  $args = array();
+  $join = array();
+
+  if ($string !== '') {
+    $like = $GLOBALS["db_type"] == 'pgsql' ? "ILIKE" : "LIKE";
+    $match_clauses = array(
+      'contains' => "$like '%%%s%%'",
+      'equals' => "= '%s'",
+      'starts_with' => "$like '%s%%'",
+    );
+    $where[] = 'aft.name '. (isset($match_clauses[$match]) ? $match_clauses[$match] : $match_clauses['contains']);
+    $args[] = $string;
+  }
+  elseif ($ids) {
+    $where[] = 'aft.fid IN (' . db_placeholders($ids) . ')';
+    $args = array_merge($args, $ids);
+  }
+  else {
+    $where[] = "aft.fid > 0";
+  }
+
+  $fruits = array();
+  $where_clause = $where ? 'WHERE ('. implode(') AND (', $where) .')' : '';
+  $sql = 'SELECT aft.name, aft.fid FROM {acfieldautocomplete_fruit_table} aft '. implode(' ', $join) ." $where_clause ORDER BY aft.name ASC";
+  $result = db_query($sql, $args);
+  while ($fruit = db_fetch_object($result)) {
+    $fruits[$fruit->fid] = array(
+      'title' => $fruit->name,
+      'rendered' => check_plain($fruit->name),
+    );
+  }
+  return $fruits;
+}
+
+/**
+ * Menu callback; Retrieve a pipe delimited string of autocomplete suggestions for existing users
+ */
+function acfieldautocomplete_autocomplete($field_name, $string = '') {
+  $fields = content_fields();
+  $field = $fields[$field_name];
+  $match = isset($field['widget']['autocomplete_match']) ? $field['widget']['autocomplete_match'] : 'contains';
+  $matches = array();
+
+  $references = _acfieldautocomplete_potential_references($field, $string, $match, array(), 10);
+  foreach ($references as $id => $row) {
+    // Add a class wrapper for a few required CSS overrides.
+    $matches[$row['title']] = '<div class="reference-autocomplete">'. $row['rendered'] . '</div>';
+  }
+  drupal_json($matches);
+}
+
+
+
+/**
+ * Process an individual element.
+ */
+function acfieldautocomplete_textfield_process($element, $edit, $form_state, $form) {
+  $field = $form['#field_info'][$element['#field_name']];
+  $field_key = $element['#columns'][0];
+  $delta = $element['#delta'];
+  $element[$field_key] = array(
+    '#type' => 'textfield',
+    '#title' => $element['#title'],
+    '#description' => content_filter_xss($field['widget']['description']),
+    '#required' => $element['#required'],
+    '#maxlength' => 255,
+    '#size' => !empty($field['widget']['size']) ? $field['widget']['size'] : 60,
+    '#attributes' => array('class' => 'text', 'dir' => 'ltr'),
+    '#default_value' => isset($element['#value'][$field_key]) ? $element['#value'][$field_key] : NULL,
+  );
+  return $element;
+}
+
+/**
+ * FAPI theme for an individual text elements.
+ */
+function theme_acfieldautocomplete_textfield($element) {
+  return $element['#children'];
+}
+
+function theme_acfieldautocomplete_autocomplete($element) {
+  return $element['#children'];
+}

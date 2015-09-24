@@ -1,0 +1,6 @@
+name = acfieldautocomplete
+description = "Build a CCK field example"
+dependencies[] = content
+package = AC Work
+core = 6.x
+version = "6.x-1.0"

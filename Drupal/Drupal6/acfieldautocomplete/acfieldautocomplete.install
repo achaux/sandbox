@@ -1,0 +1,83 @@
+<?php
+
+
+/**
+ * Implementation of hook_install().
+ */
+function acfieldautocomplete_install() {
+  drupal_install_schema('acfieldautocomplete');
+  _acfieldautocomplete_populate_default_values();
+  drupal_load('module', 'content');
+  content_notify('install', 'acfieldautocomplete');
+}
+
+/**
+ * Implementation of hook_uninstall().
+ */
+function acfieldautocomplete_uninstall() {
+  drupal_uninstall_schema('acfieldautocomplete');
+  drupal_load('module', 'content');
+  content_notify('uninstall', 'acfieldautocomplete');
+}
+
+/**
+ * Implementation of hook_enable().
+ *
+ * Notify content module when this module is enabled.
+ */
+function acfieldautocomplete_enable() {
+  drupal_load('module', 'content');
+  content_notify('enable', 'acfieldautocomplete');
+}
+
+/**
+ * Implementation of hook_disable().
+ *
+ * Notify content module when this module is disabled.
+ */
+function acfieldautocomplete_disable() {
+  drupal_load('module', 'content');
+  content_notify('disable', 'acfieldautocomplete');
+}
+
+/**
+ * Implementation of hook_schema.
+ */
+function acfieldautocomplete_schema() {
+
+  $schema['acfieldautocomplete_fruit_table'] = array(
+    'description' => 'The fruit test table for CCK widget creation.',
+    'fields' => array(
+      'fid' => array(
+        'description' => 'The primary identifier for a fruit.',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'name' => array(
+        'description' => 'The name of the fruit.',
+        'type' => 'varchar', 
+        'length' => 127, 
+        'not null' => TRUE, 
+        'default' => ''
+      ),
+    ),
+    'primary key' => array('fid'),
+  );
+  return $schema;
+}
+
+/**
+ * Pre-populate the actest_fruit table.
+ */
+function _acfieldautocomplete_populate_default_values() {
+  $ret = array();
+
+  if (db_column_exists('acfieldautocomplete_fruit_table', 'name')) {
+    $fruits = array('Apple', 'Bannana', 'Cantelope', 'Mango', 'Nectarine', 'Orange', 'Papaya', 'Peach', 'Pear', 'Pineapple', 'Plumb',  'Tangerine', 'Watermellon', );
+    foreach ($fruits as $fruit){
+      $ret[] = db_query("INSERT INTO {acfieldautocomplete_fruit_table} SET name = '%s'", $fruit);
+    }
+  }
+  return $ret;
+}
